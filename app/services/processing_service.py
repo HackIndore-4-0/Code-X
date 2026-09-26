@@ -11,7 +11,11 @@ from app.services.correlation_service import (
     link_event_to_correlation,
 )
 from app.services.evidence_service import create_evidence
-from app.services.event_service import create_event, event_exists
+from app.services.event_service import (
+    create_event,
+    event_exists,
+    get_event,
+)
 from app.services.incident_event_service import link_event_to_incident
 from app.services.incident_service import (
     create_incident,
@@ -20,32 +24,51 @@ from app.services.incident_service import (
 
 
 def generate_incident_id() -> str:
-    """
-    Generate a persistent Backend-owned incident identifier.
-    """
-
     return f"INC-{uuid4().hex[:8].upper()}"
 
 
 def generate_persistence_id(prefix: str) -> str:
-    """
-    Generate a unique identifier for persisted intelligence records.
-    """
-
     return f"{prefix}-{uuid4().hex[:8].upper()}"
 
 
 def _get_incident_title(event: NormalizedEvent) -> str:
-    """
-    Generate the required database title for a new incident.
-
-    Intelligence owns the incident decision, while the Backend owns
-    persistence details such as the database identifier and title.
-    """
-
     event_name = event.event_type.value.replace("_", " ")
-
     return f"Suspicious {event_name} activity"
+
+
+def _persist_incident_events(
+    db: Session,
+    incident_id: str,
+    current_event_id: str,
+    event_ids: list[str],
+) -> None:
+    """
+    Link all events identified by the intelligence layer
+    to the incident.
+
+    The current event is marked as CURRENT_EVENT.
+    Other events returned by intelligence are marked as
+    CORRELATED_EVENT.
+    """
+
+    unique_event_ids = list(dict.fromkeys(event_ids))
+
+    if current_event_id not in unique_event_ids:
+        unique_event_ids.append(current_event_id)
+
+    for event_id in unique_event_ids:
+        relationship = (
+            "CURRENT_EVENT"
+            if event_id == current_event_id
+            else "CORRELATED_EVENT"
+        )
+
+        link_event_to_incident(
+            db=db,
+            incident_id=incident_id,
+            event_id=event_id,
+            relationship=relationship,
+        )
 
 
 def _persist_correlations(
@@ -54,13 +77,6 @@ def _persist_correlations(
     current_event_id: str,
     correlations: list[dict],
 ) -> None:
-    """
-    Persist intelligence-produced correlations and their event links.
-
-    The incident_id is intentionally not stored on the correlation
-    itself. Incident membership is derived through the linked events.
-    """
-
     for correlation in correlations:
         correlation_id = correlation.get("correlation_id")
 
@@ -84,7 +100,7 @@ def _persist_correlations(
             strength=float(strength),
         )
 
-        event_ids = correlation.get("event_ids") or []
+        event_ids = list(correlation.get("event_ids") or [])
 
         if current_event_id not in event_ids:
             event_ids.append(current_event_id)
@@ -110,11 +126,6 @@ def _persist_evidence(
     current_event_id: str,
     evidence_items: list[dict],
 ) -> None:
-    """
-    Persist intelligence-produced evidence and associate it
-    with the current incident.
-    """
-
     for item in evidence_items:
         evidence_id = item.get("evidence_id")
 
@@ -122,7 +133,6 @@ def _persist_evidence(
             evidence_id = generate_persistence_id("EVD")
 
         event_id = item.get("event_id") or current_event_id
-
         evidence_type = item.get("type")
 
         if not evidence_type:
@@ -150,13 +160,6 @@ def _apply_incident_result(
     intelligence_result: dict,
     historical_context: dict,
 ) -> str | None:
-    """
-    Convert the Intelligence incident decision into persistent
-    Backend records.
-
-    Returns the resulting incident_id, or None when Intelligence
-    returned no incident.
-    """
 
     incident_result = intelligence_result.get("incident")
 
@@ -200,8 +203,8 @@ def _apply_incident_result(
         )
 
     else:
-        existing_incident = (
-            historical_context.get("existing_incident")
+        existing_incident = historical_context.get(
+            "existing_incident"
         )
 
         if not existing_incident:
@@ -237,17 +240,18 @@ def _apply_incident_result(
         db.commit()
         db.refresh(incident)
 
-    link_event_to_incident(
-        db=db,
-        incident_id=incident.incident_id,
-        event_id=event.event_id,
-        relationship="CURRENT_EVENT",
+    incident_event_ids = (
+        incident_result.get("event_ids") or []
     )
 
-    correlations = (
-        intelligence_result.get("correlations")
-        or []
+    _persist_incident_events(
+        db=db,
+        incident_id=incident.incident_id,
+        current_event_id=event.event_id,
+        event_ids=incident_event_ids,
     )
+
+    correlations = intelligence_result.get("correlations") or []
 
     _persist_correlations(
         db=db,
@@ -256,10 +260,7 @@ def _apply_incident_result(
         correlations=correlations,
     )
 
-    evidence = (
-        intelligence_result.get("evidence")
-        or []
-    )
+    evidence = intelligence_result.get("evidence") or []
 
     _persist_evidence(
         db=db,
@@ -274,14 +275,34 @@ def _apply_incident_result(
 def process_incoming_event(
     db: Session,
     event: NormalizedEvent,
+    *,
+    allow_existing: bool = False,
+    simulation_run_id: str | None = None,
 ) -> dict:
-    if event_exists(db, event.event_id):
-        raise ValueError("Event already exists")
 
-    saved_event = create_event(
-        db,
-        event,
-    )
+    existing_event = None
+
+    if event_exists(db, event.event_id):
+        if not allow_existing:
+            raise ValueError("Event already exists")
+
+        existing_event = get_event(
+            db,
+            event.event_id,
+        )
+
+        if existing_event is None:
+            raise ValueError(
+                f"Event '{event.event_id}' exists but could not be loaded"
+            )
+
+        saved_event = existing_event
+
+    else:
+        saved_event = create_event(
+            db,
+            event,
+        )
 
     historical_context = get_historical_context(
         db,
@@ -295,9 +316,16 @@ def process_incoming_event(
         )
 
     except Exception as exc:
+        audit_id = f"AUD-{event.event_id}"
+
+        if existing_event is not None and simulation_run_id:
+            audit_id = (
+                f"AUD-{event.event_id}-RUN-{simulation_run_id}"
+            )
+
         create_audit_log(
             db=db,
-            audit_id=f"AUD-{event.event_id}",
+            audit_id=audit_id,
             incident_id=None,
             action="INTELLIGENCE_PROCESSING_FAILED",
             actor="system",
@@ -322,18 +350,25 @@ def process_incoming_event(
 
     if incident_id:
         incident_result = (
-            intelligence_result.get("incident")
-            or {}
+            intelligence_result.get("incident") or {}
         )
 
         if incident_result.get("action") == "CREATED":
             audit_action = "INCIDENT_CREATED"
+
         elif incident_result.get("action") == "UPDATED":
             audit_action = "INCIDENT_UPDATED"
 
+    audit_id = f"AUD-{event.event_id}"
+
+    if existing_event is not None and simulation_run_id:
+        audit_id = (
+            f"AUD-{event.event_id}-RUN-{simulation_run_id}"
+        )
+
     create_audit_log(
         db=db,
-        audit_id=f"AUD-{event.event_id}",
+        audit_id=audit_id,
         incident_id=incident_id,
         action=audit_action,
         actor="system",
@@ -342,18 +377,16 @@ def process_incoming_event(
             "event_type": event.event_type.value,
             "timestamp": event.timestamp.isoformat(),
             "incident_action": (
-                intelligence_result.get("incident")
-                or {}
+                intelligence_result.get("incident") or {}
             ).get("action"),
             "priority": intelligence_result.get("priority"),
             "evidence_count": len(
-                intelligence_result.get("evidence")
-                or []
+                intelligence_result.get("evidence") or []
             ),
             "correlation_count": len(
-                intelligence_result.get("correlations")
-                or []
+                intelligence_result.get("correlations") or []
             ),
+            "simulation_run_id": simulation_run_id,
         },
     )
 

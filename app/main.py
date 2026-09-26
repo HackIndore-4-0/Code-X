@@ -27,6 +27,16 @@ app = FastAPI(
     version="1.0.0",
 )
 
+@app.get("/api/health")
+def health():
+    return {
+        "success": True,
+        "data": {
+            "status": "healthy"
+        },
+        "error": None,
+    }
+
 
 app.include_router(events_router)
 app.include_router(incidents_router)

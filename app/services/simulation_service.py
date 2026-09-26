@@ -9,6 +9,7 @@ from app.services.change_service import calculate_changes
 
 _simulation_state: dict[str, Any] = {
     "scenario": None,
+    "run_id": None,
     "events": [],
     "current_index": -1,
     "current_event": None,
@@ -29,6 +30,7 @@ def reset_simulation_state() -> dict[str, Any]:
     _simulation_state.update(
         {
             "scenario": None,
+            "run_id": None,
             "events": [],
             "current_index": -1,
             "current_event": None,
@@ -47,9 +49,14 @@ def reset_simulation_state() -> dict[str, Any]:
 def start_simulation(scenario: str) -> dict[str, Any]:
     events = get_scenario(scenario)
 
+    import uuid
+
+    run_id = uuid.uuid4().hex[:8]
+
     _simulation_state.update(
         {
             "scenario": scenario,
+            "run_id": run_id,
             "events": events,
             "current_index": -1,
             "current_event": None,
@@ -80,24 +87,37 @@ def process_next_event(db: Session) -> dict[str, Any]:
     previous_result = {}
 
     if _simulation_state["current_index"] >= 0:
-        previous_event = events[_simulation_state["current_index"]]
+        previous_event = events[
+            _simulation_state["current_index"]
+        ]
 
-        previous_result = _simulation_state["processed_results"].get(
+        previous_result = _simulation_state[
+            "processed_results"
+        ].get(
             previous_event.event_id,
             {},
         )
 
     if event.event_id in _simulation_state["processed_results"]:
-        result = _simulation_state["processed_results"][event.event_id]
+        result = _simulation_state["processed_results"][
+            event.event_id
+        ]
+
     else:
         result = process_incoming_event(
             db,
             event,
+            allow_existing=True,
+            simulation_run_id=_simulation_state["run_id"],
         )
 
-        _simulation_state["processed_results"][event.event_id] = result
+        _simulation_state["processed_results"][
+            event.event_id
+        ] = result
 
-        if event.event_id not in _simulation_state["processed_events"]:
+        if event.event_id not in _simulation_state[
+            "processed_events"
+        ]:
             _simulation_state["processed_events"].append(
                 event.event_id
             )
@@ -125,7 +145,9 @@ def process_previous_event() -> dict[str, Any]:
     current_index = _simulation_state["current_index"]
 
     if current_index <= -1:
-        raise ValueError("Simulation is already at the beginning")
+        raise ValueError(
+            "Simulation is already at the beginning"
+        )
 
     previous_index = current_index - 1
 
@@ -141,7 +163,9 @@ def process_previous_event() -> dict[str, Any]:
 
         current_event = events[previous_index]
 
-        current_result = _simulation_state["processed_results"].get(
+        current_result = _simulation_state[
+            "processed_results"
+        ].get(
             current_event.event_id,
             {},
         )
@@ -149,7 +173,9 @@ def process_previous_event() -> dict[str, Any]:
         if previous_index > 0:
             previous_event = events[previous_index - 1]
 
-            previous_result = _simulation_state["processed_results"].get(
+            previous_result = _simulation_state[
+                "processed_results"
+            ].get(
                 previous_event.event_id,
                 {},
             )
