@@ -50,8 +50,8 @@ class LLMService:
         Generate a human-readable explanation from
         structured TraceX facts.
 
-        The LLM is explicitly instructed not to create
-        new security conclusions.
+        The LLM is strictly limited to explaining
+        information already present in the TraceX context.
         """
 
         if not self.is_available():
@@ -72,9 +72,16 @@ class LLMService:
                 {
                     "role": "system",
                     "content": (
-                        "You are the explanation layer for TraceX. "
-                        "You explain only structured facts supplied "
-                        "by TraceX and must not invent security findings."
+                        "You are a strictly grounded explanation "
+                        "layer for TraceX. "
+                        "Your only job is to restate and explain "
+                        "structured TraceX facts. "
+                        "You are not a threat detector, incident "
+                        "classifier, investigator, or decision maker. "
+                        "Never add facts, causes, motives, actors, "
+                        "attack claims, or security conclusions that "
+                        "are not explicitly present in the supplied "
+                        "TraceX context."
                     ),
                 },
                 {
@@ -82,7 +89,7 @@ class LLMService:
                     "content": prompt,
                 },
             ],
-            "temperature": 0.2,
+            "temperature": 0.1,
         }
 
         try:
@@ -132,56 +139,156 @@ class LLMService:
         context: dict[str, Any],
     ) -> str:
         """
-        Build a constrained explanation prompt.
+        Build a strictly grounded explanation prompt.
 
-        Only structured TraceX data is supplied to the model.
+        The model may summarize and organize supplied TraceX facts,
+        but may not infer new security conclusions.
         """
 
         return f"""
 You are the explanation layer for TraceX,
 an incident-intelligence system.
 
-Your job is ONLY to explain findings that TraceX
-has already produced.
+TraceX has already performed the detection, correlation,
+evidence generation, incident decision, and priority calculation.
 
-You MUST follow these rules:
+Your ONLY task is to explain those existing results clearly.
 
-1. Do not invent events.
-2. Do not invent evidence.
-3. Do not invent correlations.
-4. Do not change the incident priority.
-5. Do not decide whether an incident should exist.
-6. Do not claim that an attack definitely occurred.
-7. Do not introduce facts outside the supplied TraceX data.
-8. Clearly distinguish supporting evidence from mitigating evidence.
-9. Explain why events are connected using only supplied correlations.
-10. Explain why the current investigation priority exists.
-11. Keep the explanation concise and suitable for a security analyst.
+The supplied context is the complete source of truth.
+
+STRICT GROUNDING RULES:
+
+1. Use only facts explicitly present in the supplied TraceX context.
+
+2. Do not invent events, evidence, users, devices, attackers,
+   causes, motives, actions, or outcomes.
+
+3. Do not infer malicious intent.
+
+4. Do not say that a compromise, attack, breach, unauthorized access,
+   credential theft, or attacker activity occurred unless the
+   supplied context explicitly states that fact.
+
+5. Do not infer causation.
+   A sequence of events does not prove that one event caused another.
+
+6. Do not reinterpret event types.
+   For example:
+   - "privilege_change" means a privilege-change event was recorded.
+   - It does NOT automatically mean "privilege escalation".
+   - "large_transfer" means a large-transfer event was recorded.
+   - It does NOT automatically mean data exfiltration.
+
+7. Do not reinterpret correlations.
+   A correlation means TraceX found a relationship according to
+   its correlation logic.
+   Correlation strength is NOT proof of malicious activity,
+   causation, or a single attack.
+
+8. Do not reinterpret priority.
+   TraceX priority represents investigation attention.
+   A HIGH or CRITICAL priority does NOT mean that an attack,
+   compromise, or breach has been established.
+
+9. Do not reinterpret incident status.
+   "RESOLVED" means the TraceX incident status is RESOLVED.
+   It does NOT prove containment, remediation, recovery,
+   or that a threat has been eliminated.
+
+10. Do not treat missing evidence as evidence.
+    If mitigating evidence is empty, say that no mitigating
+    evidence was recorded by TraceX rather than claiming that
+    there were no mitigating circumstances.
+
+11. Do not add external cybersecurity knowledge to the incident.
+    Explain the supplied data rather than completing missing facts
+    from general security assumptions.
+
+12. Preserve the distinction between:
+    - observed events
+    - anomalies
+    - correlations
+    - evidence
+    - incident state
+    - investigation priority
+
+13. When describing a correlation, use factual wording such as:
+    "TraceX correlated these events based on the supplied
+    relationship fields and temporal context."
+
+14. When describing an anomaly, use factual wording such as:
+    "TraceX identified this event as anomalous because of
+    the supplied anomaly indicators."
+
+15. When describing priority, use factual wording such as:
+    "TraceX assigned a priority of X based on the supplied
+    priority factors."
+
+16. Recommended actions must remain analyst-oriented and
+    evidence-focused. They may suggest reviewing, validating,
+    or examining information already present in the TraceX context.
+    Do not invent remediation requirements or claim that a
+    particular security control has been compromised.
+
+17. If the supplied context does not contain enough information
+    to make a stronger statement, explicitly remain at the
+    narrower factual statement.
+
+IMPORTANT TERMINOLOGY:
+
+Never turn:
+
+    anomaly → compromise
+
+    correlation → attack
+
+    privilege_change → privilege escalation
+
+    large_transfer → exfiltration
+
+    critical priority → critical attack
+
+    resolved status → containment
+
+    temporal sequence → causation
+
+    missing mitigating evidence → proof of maliciousness
 
 TRACE X STRUCTURED CONTEXT:
 
 {context}
 
-Produce a concise explanation containing:
+Produce a concise analyst-facing explanation using exactly
+these sections:
 
 SUMMARY:
-A short description of what TraceX identified.
+Describe what TraceX identified using only the supplied facts.
 
 WHY CONNECTED:
-Explain how the supplied events are connected.
+Explain how the supplied events are connected according to
+the supplied TraceX correlations.
 
 SUPPORTING EVIDENCE:
-List the supplied evidence that increases concern.
+Summarize only the supplied supporting evidence.
 
 MITIGATING EVIDENCE:
-List the supplied evidence that reduces concern.
+Summarize only the supplied mitigating evidence.
+If none exists, explicitly say that no mitigating evidence
+was recorded by TraceX.
 
 WHY INVESTIGATE:
-Explain the current TraceX priority and status.
+Explain the assigned TraceX investigation priority and
+current incident status without interpreting them as proof
+of malicious activity.
 
 RECOMMENDED ACTIONS:
-Suggest analyst-oriented next steps based only on the supplied
-incident state and evidence.
+Give conservative analyst-oriented next steps that involve
+reviewing or validating the supplied TraceX evidence and state.
+Do not invent new facts or remediation requirements.
 
-Do not add information that is not present in the TraceX context.
+Before producing the answer, check every sentence:
+"Can this sentence be directly supported by the supplied
+TraceX context?"
+
+If not, remove or rewrite the sentence.
 """.strip()
