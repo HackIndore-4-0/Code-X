@@ -1,0 +1,114 @@
+{
+  "scenario": "benign",
+  "description": "Unusual-looking activity that is explained by legitimate context",
+  "user": {
+    "user_id": "USR-202",
+    "name": "Neha Verma",
+    "role": "Database Administrator"
+  },
+  "events": [
+    {
+      "event_id": "EVT-B-001",
+      "timestamp": "2026-09-27T22:10:00Z",
+      "event_type": "login",
+      "user_id": "USR-202",
+      "device_id": "DEV-310",
+      "ip_address": "10.0.2.25",
+      "location": "Indore",
+      "session_id": "SES-B-001",
+      "resource": null,
+      "action": "login",
+      "metadata": {
+        "login_time": "unusual",
+        "authentication": "password"
+      }
+    },
+    {
+      "event_id": "EVT-B-002",
+      "timestamp": "2026-09-27T22:12:00Z",
+      "event_type": "known_device",
+      "user_id": "USR-202",
+      "device_id": "DEV-310",
+      "ip_address": "10.0.2.25",
+      "location": "Indore",
+      "session_id": "SES-B-001",
+      "resource": null,
+      "action": "device_verified",
+      "metadata": {
+        "known_device": true
+      }
+    },
+    {
+      "event_id": "EVT-B-003",
+      "timestamp": "2026-09-27T22:14:00Z",
+      "event_type": "corporate_vpn",
+      "user_id": "USR-202",
+      "device_id": "DEV-310",
+      "ip_address": "10.0.2.25",
+      "location": "Indore",
+      "session_id": "SES-B-001",
+      "resource": null,
+      "action": "vpn_connected",
+      "metadata": {
+        "vpn": "corporate",
+        "network": "internal"
+      }
+    },
+    {
+      "event_id": "EVT-B-004",
+      "timestamp": "2026-09-27T22:18:00Z",
+      "event_type": "resource_access",
+      "user_id": "USR-202",
+      "device_id": "DEV-310",
+      "ip_address": "10.0.2.25",
+      "location": "Indore",
+      "session_id": "SES-B-001",
+      "resource": "finance-db",
+      "action": "maintenance",
+      "metadata": {
+        "resource_type": "database",
+        "sensitivity": "high",
+        "maintenance_window": true
+      }
+    },
+    {
+      "event_id": "EVT-B-005",
+      "timestamp": "2026-09-27T22:25:00Z",
+      "event_type": "approved_maintenance",
+      "user_id": "USR-202",
+      "device_id": "DEV-310",
+      "ip_address": "10.0.2.25",
+      "location": "Indore",
+      "session_id": "SES-B-001",
+      "resource": "finance-db",
+      "action": "maintenance",
+      "metadata": {
+        "approved": true,
+        "ticket_id": "CHG-2026-0917"
+      }
+    },
+    {
+      "event_id": "EVT-B-006",
+      "timestamp": "2026-09-27T22:32:00Z",
+      "event_type": "approved_transfer",
+      "user_id": "USR-202",
+      "device_id": "DEV-310",
+      "ip_address": "10.0.2.25",
+      "location": "Indore",
+      "session_id": "SES-B-001",
+      "resource": "s3://finance-vault-backup",
+      "action": "data_transfer",
+      "metadata": {
+        "approved": true,
+        "destination_type": "object_storage",
+        "change_ticket": "CHG-2026-0917"
+      }
+    }
+  ],
+  "expected_outcome": {
+    "incident_created": false,
+    "incident_status": "NO_INCIDENT",
+    "priority_label": "LOW",
+    "expected_behavior": "Activity should remain benign because the unusual behavior has legitimate context."
+  }
+}

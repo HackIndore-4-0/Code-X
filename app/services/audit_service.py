@@ -40,3 +40,18 @@ def get_incident_audit_logs(
     )
 
     return list(db.scalars(statement).all())
+
+
+def get_all_audit_logs(
+    db: Session,
+    limit: int = 100,
+    offset: int = 0,
+) -> list[AuditLog]:
+    statement = (
+        select(AuditLog)
+        .order_by(AuditLog.timestamp.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+
+    return list(db.scalars(statement).all())

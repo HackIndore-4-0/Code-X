@@ -1,186 +1,59 @@
+import json
 from datetime import datetime
+from pathlib import Path
 
 from app.schemas.event import NormalizedEvent
 
 
+SCENARIOS_DIR = Path(__file__).resolve().parent / "scenarios"
+
+
+def _load_scenario_file(name: str) -> list[NormalizedEvent]:
+    path = SCENARIOS_DIR / f"scenario_{name}.json"
+
+    if not path.exists():
+        raise ValueError(f"Scenario file not found: {path}")
+
+    with path.open("r", encoding="utf-8") as f:
+        scenario = json.load(f)
+
+    events = scenario.get("events")
+
+    if not isinstance(events, list):
+        raise ValueError(
+            f"Scenario '{name}' must contain an 'events' list"
+        )
+
+    normalized_events: list[NormalizedEvent] = []
+
+    for raw_event in events:
+        normalized_events.append(
+            NormalizedEvent(
+                event_id=raw_event["event_id"],
+                timestamp=datetime.fromisoformat(
+                    raw_event["timestamp"].replace("Z", "+00:00")
+                ),
+                event_type=raw_event["event_type"],
+                user_id=raw_event["user_id"],
+                device_id=raw_event.get("device_id"),
+                ip_address=raw_event.get("ip_address"),
+                location=raw_event.get("location"),
+                session_id=raw_event.get("session_id"),
+                resource=raw_event.get("resource"),
+                action=raw_event.get("action"),
+                metadata=raw_event.get("metadata", {}),
+            )
+        )
+
+    return normalized_events
+
+
 def suspicious_scenario() -> list[NormalizedEvent]:
-    return [
-        NormalizedEvent(
-            event_id="EVT-S-001",
-            timestamp=datetime.fromisoformat("2026-09-25T09:12:00"),
-            event_type="login",
-            user_id="USR-101",
-            device_id="DEV-882",
-            ip_address="10.0.0.15",
-            location="Indore",
-            session_id="SES-001",
-            action="login",
-            metadata={
-                "user_name": "Aarav Sharma",
-                "unusual": True,
-            },
-        ),
-        NormalizedEvent(
-            event_id="EVT-S-002",
-            timestamp=datetime.fromisoformat("2026-09-25T09:18:00"),
-            event_type="mfa_failure",
-            user_id="USR-101",
-            device_id="DEV-882",
-            ip_address="10.0.0.15",
-            location="Indore",
-            session_id="SES-001",
-            action="mfa_failure",
-            metadata={
-                "attempts": 3,
-            },
-        ),
-        NormalizedEvent(
-            event_id="EVT-S-003",
-            timestamp=datetime.fromisoformat("2026-09-25T09:21:00"),
-            event_type="new_device",
-            user_id="USR-101",
-            device_id="DEV-882",
-            ip_address="10.0.0.15",
-            location="Indore",
-            session_id="SES-001",
-            action="new_device",
-            metadata={},
-        ),
-        NormalizedEvent(
-            event_id="EVT-S-004",
-            timestamp=datetime.fromisoformat("2026-09-25T09:25:00"),
-            event_type="resource_access",
-            user_id="USR-101",
-            device_id="DEV-882",
-            ip_address="10.0.0.15",
-            location="Indore",
-            session_id="SES-001",
-            resource="finance_db",
-            action="read",
-            metadata={},
-        ),
-        NormalizedEvent(
-            event_id="EVT-S-005",
-            timestamp=datetime.fromisoformat("2026-09-25T09:31:00"),
-            event_type="privilege_change",
-            user_id="USR-101",
-            device_id="DEV-882",
-            ip_address="10.0.0.15",
-            location="Indore",
-            session_id="SES-001",
-            action="privilege_change",
-            metadata={
-                "new_role": "admin",
-            },
-        ),
-        NormalizedEvent(
-            event_id="EVT-S-006",
-            timestamp=datetime.fromisoformat("2026-09-25T09:35:00"),
-            event_type="large_transfer",
-            user_id="USR-101",
-            device_id="DEV-882",
-            ip_address="10.0.0.15",
-            location="Indore",
-            session_id="SES-001",
-            resource="finance_db",
-            action="transfer",
-            metadata={
-                "bytes": 681574400,
-                "size_mb": 650,
-            },
-        ),
-    ]
+    return _load_scenario_file("suspicious")
 
 
 def benign_scenario() -> list[NormalizedEvent]:
-    return [
-        NormalizedEvent(
-            event_id="EVT-B-001",
-            timestamp=datetime.fromisoformat("2026-09-25T18:10:00"),
-            event_type="login",
-            user_id="USR-202",
-            device_id="DEV-202",
-            ip_address="10.0.0.20",
-            location="Indore",
-            session_id="SES-002",
-            action="login",
-            metadata={
-                "user_name": "Neha Verma",
-                "late_login": True,
-            },
-        ),
-        NormalizedEvent(
-            event_id="EVT-B-002",
-            timestamp=datetime.fromisoformat("2026-09-25T18:11:00"),
-            event_type="known_device",
-            user_id="USR-202",
-            device_id="DEV-202",
-            ip_address="10.0.0.20",
-            location="Indore",
-            session_id="SES-002",
-            action="device_verified",
-            metadata={},
-        ),
-        NormalizedEvent(
-            event_id="EVT-B-003",
-            timestamp=datetime.fromisoformat("2026-09-25T18:12:00"),
-            event_type="corporate_vpn",
-            user_id="USR-202",
-            device_id="DEV-202",
-            ip_address="10.0.0.20",
-            location="Indore",
-            session_id="SES-002",
-            action="vpn_login",
-            metadata={
-                "corporate_vpn": True,
-            },
-        ),
-        NormalizedEvent(
-            event_id="EVT-B-004",
-            timestamp=datetime.fromisoformat("2026-09-25T18:14:00"),
-            event_type="resource_access",
-            user_id="USR-202",
-            device_id="DEV-202",
-            ip_address="10.0.0.20",
-            location="Indore",
-            session_id="SES-002",
-            resource="maintenance_system",
-            action="read",
-            metadata={},
-        ),
-        NormalizedEvent(
-            event_id="EVT-B-005",
-            timestamp=datetime.fromisoformat("2026-09-25T18:15:00"),
-            event_type="approved_maintenance",
-            user_id="USR-202",
-            device_id="DEV-202",
-            ip_address="10.0.0.20",
-            location="Indore",
-            session_id="SES-002",
-            resource="maintenance_system",
-            action="maintenance",
-            metadata={
-                "approved": True,
-            },
-        ),
-        NormalizedEvent(
-            event_id="EVT-B-006",
-            timestamp=datetime.fromisoformat("2026-09-25T18:30:00"),
-            event_type="approved_transfer",
-            user_id="USR-202",
-            device_id="DEV-202",
-            ip_address="10.0.0.20",
-            location="Indore",
-            session_id="SES-002",
-            resource="maintenance_system",
-            action="transfer",
-            metadata={
-                "bytes": 524288000,
-                "size_mb": 500,
-                "approved": True,
-            },
-        ),
-    ]
+    return _load_scenario_file("benign")
 
 
 SCENARIOS = {

@@ -1,0 +1,111 @@
+{
+  "scenario": "suspicious",
+  "description": "Behavioral sequence that develops into an incident",
+  "user": {
+    "user_id": "USR-101",
+    "name": "Aarav Sharma",
+    "role": "Finance Analyst"
+  },
+  "events": [
+    {
+      "event_id": "EVT-S-001",
+      "timestamp": "2026-09-27T09:12:00Z",
+      "event_type": "login",
+      "user_id": "USR-101",
+      "device_id": "DEV-882",
+      "ip_address": "10.0.0.15",
+      "location": "Indore",
+      "session_id": "SES-S-001",
+      "resource": null,
+      "action": "login",
+      "metadata": {
+        "login_time": "unusual",
+        "authentication": "password"
+      }
+    },
+    {
+      "event_id": "EVT-S-002",
+      "timestamp": "2026-09-27T09:18:00Z",
+      "event_type": "mfa_failure",
+      "user_id": "USR-101",
+      "device_id": "DEV-882",
+      "ip_address": "10.0.0.15",
+      "location": "Indore",
+      "session_id": "SES-S-001",
+      "resource": null,
+      "action": "mfa_failure",
+      "metadata": {
+        "failure_count": 3
+      }
+    },
+    {
+      "event_id": "EVT-S-003",
+      "timestamp": "2026-09-27T09:21:00Z",
+      "event_type": "new_device",
+      "user_id": "USR-101",
+      "device_id": "DEV-991",
+      "ip_address": "198.51.100.42",
+      "location": "Indore",
+      "session_id": "SES-S-001",
+      "resource": null,
+      "action": "device_registered",
+      "metadata": {
+        "known_device": false
+      }
+    },
+    {
+      "event_id": "EVT-S-004",
+      "timestamp": "2026-09-27T09:25:00Z",
+      "event_type": "resource_access",
+      "user_id": "USR-101",
+      "device_id": "DEV-991",
+      "ip_address": "198.51.100.42",
+      "location": "Indore",
+      "session_id": "SES-S-001",
+      "resource": "finance-db",
+      "action": "read",
+      "metadata": {
+        "resource_type": "database",
+        "sensitivity": "high"
+      }
+    },
+    {
+      "event_id": "EVT-S-005",
+      "timestamp": "2026-09-27T09:31:00Z",
+      "event_type": "privilege_change",
+      "user_id": "USR-101",
+      "device_id": "DEV-991",
+      "ip_address": "198.51.100.42",
+      "location": "Indore",
+      "session_id": "SES-S-001",
+      "resource": "finance-db",
+      "action": "permission_change",
+      "metadata": {
+        "previous_role": "finance_analyst",
+        "new_role": "finance_admin"
+      }
+    },
+    {
+      "event_id": "EVT-S-006",
+      "timestamp": "2026-09-27T09:35:00Z",
+      "event_type": "large_transfer",
+      "user_id": "USR-101",
+      "device_id": "DEV-991",
+      "ip_address": "198.51.100.42",
+      "location": "Indore",
+      "session_id": "SES-S-001",
+      "resource": "s3://finance-vault-backup",
+      "action": "data_transfer",
+      "metadata": {
+        "bytes": 681574400,
+        "destination_type": "object_storage"
+      }
+    }
+  ],
+  "expected_outcome": {
+    "incident_created": true,
+    "incident_status": "INCIDENT_CANDIDATE",
+    "priority_label": "CRITICAL",
+    "expected_behavior": "Events should be correlated into a single incident."
+  }
+}

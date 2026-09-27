@@ -104,19 +104,31 @@ def process_next_event(db: Session) -> dict[str, Any]:
         ]
 
     else:
+        print(
+            f"[SIM DEBUG] {event.event_id} "
+            f"processed={_simulation_state['processed_events']} "
+            f"incident={_simulation_state['incident']}"
+        )
+
         result = process_incoming_event(
             db,
             event,
             allow_existing=True,
             simulation_run_id=_simulation_state["run_id"],
-            simulation_event_ids=_simulation_state[
-                "processed_events"
-            ],
+            simulation_event_ids=_simulation_state["processed_events"],
             simulation_incident_id=(
                 _simulation_state["incident"]["incident_id"]
                 if _simulation_state["incident"]
                 else None
             ),
+        )
+
+        print(
+            f"[SIM DEBUG RESULT] {event.event_id} "
+            f"correlations="
+            f"{len((result.get('intelligence') or {}).get('correlations') or [])} "
+            f"incident={result.get('incident_id')} "
+            f"mitigation={result.get('mitigation_id')}"
         )
 
         _simulation_state["processed_results"][

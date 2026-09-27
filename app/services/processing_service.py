@@ -299,6 +299,19 @@ def process_incoming_event(
                 f"Event '{event.event_id}' exists but could not be loaded"
             )
 
+        existing_event.timestamp = event.timestamp
+        existing_event.event_type = event.event_type.value
+        existing_event.user_id = event.user_id
+        existing_event.device_id = event.device_id
+        existing_event.ip_address = event.ip_address
+        existing_event.location = event.location
+        existing_event.session_id = event.session_id
+        existing_event.resource = event.resource
+        existing_event.action = event.action
+        existing_event.event_metadata = event.metadata
+        db.commit()
+        db.refresh(existing_event)
+
         saved_event = existing_event
 
     else:
@@ -324,7 +337,7 @@ def process_incoming_event(
     except Exception as exc:
         audit_id = f"AUD-{event.event_id}"
 
-        if existing_event is not None and simulation_run_id:
+        if simulation_run_id:
             audit_id = (
                 f"AUD-{event.event_id}-RUN-{simulation_run_id}"
             )
@@ -377,7 +390,7 @@ def process_incoming_event(
 
     audit_id = f"AUD-{event.event_id}"
 
-    if existing_event is not None and simulation_run_id:
+    if simulation_run_id:
         audit_id = (
             f"AUD-{event.event_id}-RUN-{simulation_run_id}"
         )

@@ -19,3 +19,6 @@ __pycache__/
 
 # Test/cache
 .pytest_cache/
+# Frontend dependencies/build
+node_modules/
+dist/

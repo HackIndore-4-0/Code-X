@@ -22,10 +22,21 @@ from app.models.mitigation_action import MitigationAction
 Base.metadata.create_all(bind=engine)
 
 
+from fastapi.middleware.cors import CORSMiddleware
+from app.api.audit import router as audit_router
+
 app = FastAPI(
     title="TraceX API",
     description="Incident Intelligence Backend for Autonomous AI Systems",
     version="1.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 @app.get("/api/health")
@@ -44,6 +55,7 @@ app.include_router(incidents_router)
 app.include_router(simulation_router)
 app.include_router(analyst_actions_router)
 app.include_router(explanations_router)
+app.include_router(audit_router)
 
 
 @app.get("/")
