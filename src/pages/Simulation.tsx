@@ -268,7 +268,11 @@ export const Simulation: React.FC = () => {
   const simThreatScore    = getSimulationThreatScore(currentStep, scenario);
   const simThreatSeverity = getThreatSeverity(simThreatScore);
   const pipeline       = scenario === 'suspicious' ? SUSPICIOUS_PIPELINE : BENIGN_PIPELINE;
-  const totalSteps     = scenario === 'suspicious' ? 6 : 3;
+  const totalSteps = Math.max(
+  1,
+  currentState?.changes?.total_scenario_events as number ??
+    (scenario === 'suspicious' ? 6 : 6)
+  );
   const isAtStart      = currentStep <= 0;
   const isAtEnd        = currentStep >= totalSteps;
 

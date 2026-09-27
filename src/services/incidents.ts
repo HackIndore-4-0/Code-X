@@ -11,7 +11,7 @@ import {
   mockAuditLogs,
 } from './mockData';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8001/api';
 const USE_MOCK = import.meta.env.VITE_USE_MOCK === 'true';
 
 const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
