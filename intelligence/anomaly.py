@@ -116,11 +116,21 @@ class AnomalyDetector:
             )
         )
 
+        # Unusual activity in metadata
+        signals.append(
+            AnomalySignal(
+                name="unusual_flag",
+                weight=0.40,
+                reason="Event metadata explicitly flags unusual activity.",
+                triggered=self._get_bool(event.metadata or {}, "unusual"),
+            )
+        )
+
         # MFA failure
         signals.append(
             AnomalySignal(
                 name="mfa_failure",
-                weight=0.15,
+                weight=0.40,
                 reason="MFA failure activity was observed.",
                 triggered=features.mfa_failure,
             )
@@ -130,7 +140,7 @@ class AnomalyDetector:
         signals.append(
             AnomalySignal(
                 name="new_location_event",
-                weight=0.10,
+                weight=0.20,
                 reason="A new-location security event was observed.",
                 triggered=features.new_location,
             )
@@ -140,7 +150,7 @@ class AnomalyDetector:
         signals.append(
             AnomalySignal(
                 name="new_device_event",
-                weight=0.10,
+                weight=0.20,
                 reason="A new-device security event was observed.",
                 triggered=features.new_device,
             )
@@ -150,7 +160,7 @@ class AnomalyDetector:
         signals.append(
             AnomalySignal(
                 name="sensitive_resource",
-                weight=0.10,
+                weight=0.20,
                 reason="Event accessed a potentially sensitive resource.",
                 triggered=features.is_sensitive_resource,
             )
@@ -160,7 +170,7 @@ class AnomalyDetector:
         signals.append(
             AnomalySignal(
                 name="privilege_change",
-                weight=0.20,
+                weight=0.45,
                 reason="A privilege-change event was observed.",
                 triggered=features.privilege_change,
             )
@@ -170,7 +180,7 @@ class AnomalyDetector:
         signals.append(
             AnomalySignal(
                 name="large_transfer",
-                weight=0.20,
+                weight=0.45,
                 reason="Event contains a large data-transfer amount.",
                 triggered=self._is_large_transfer(features),
             )
@@ -178,16 +188,33 @@ class AnomalyDetector:
 
         return signals
 
+    def _get_bool(
+        self,
+        metadata: dict,
+        key: str,
+    ) -> bool:
+        value = metadata.get(key, False)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.strip().lower() in {"true", "1", "yes", "y"}
+        return bool(value)
+
+
     def _is_large_transfer(
         self,
         features: EventFeatures,
     ) -> bool:
+        if self._get_bool(features.metadata, "approved"):
+            return False
+
         # 100 MB threshold for the initial deterministic detector.
         LARGE_TRANSFER_BYTES = 100 * 1024 * 1024
 
         return (
             features.transfer_size_bytes >= LARGE_TRANSFER_BYTES
         )
+
 
     def _calculate_score(
         self,

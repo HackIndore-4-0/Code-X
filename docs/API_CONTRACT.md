@@ -238,6 +238,44 @@ Response:
 
 ```json
 {
+  "nodes": [],
+  "edges": []
+}
+```
+
+---
+
+## GET `/api/incidents/{incident_id}/mitigation`
+
+Returns mitigation action details for an incident.
+
+Response:
+
+```json
+{
+  "success": true,
+  "data": {
+    "mitigation_id": "MIT-A1B2C3D4",
+    "incident_id": "INC-001",
+    "threat_weight": 91.4,
+    "threshold": 80.0,
+    "triggered": true,
+    "action": "ISOLATE_ENTITY",
+    "entity": {
+      "type": "IP",
+      "value": "198.51.100.42"
+    },
+    "user_id": "USR-101",
+    "flagged_ip": "198.51.100.42",
+    "webhook_status": "SUCCESS",
+    "remediation_status": "ISOLATED",
+    "isolation_status": "ISOLATED",
+    "timestamp": "2026-09-25T09:35:00Z"
+  },
+  "error": null
+}
+```
+
   "success": true,
   "data": {
     "nodes": [],

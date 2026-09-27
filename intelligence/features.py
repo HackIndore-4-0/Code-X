@@ -85,9 +85,12 @@ class FeatureExtractor:
                 metadata
             ),
 
-            mfa_failure=self._get_bool(
-                metadata,
-                "mfa_failure",
+            mfa_failure=(
+                event.event_type == "mfa_failure"
+                or self._get_bool(
+                    metadata,
+                    "mfa_failure",
+                )
             ),
 
             privilege_change=(
@@ -98,14 +101,20 @@ class FeatureExtractor:
                 )
             ),
 
-            new_device=self._get_bool(
-                metadata,
-                "new_device",
+            new_device=(
+                event.event_type == "new_device"
+                or self._get_bool(
+                    metadata,
+                    "new_device",
+                )
             ),
 
-            new_location=self._get_bool(
-                metadata,
-                "new_location",
+            new_location=(
+                event.event_type == "new_location"
+                or self._get_bool(
+                    metadata,
+                    "new_location",
+                )
             ),
 
             metadata=metadata,
@@ -138,6 +147,12 @@ class FeatureExtractor:
         self,
         metadata: Dict[str, Any],
     ) -> int:
+        if "size_mb" in metadata:
+            try:
+                return max(0, int(metadata["size_mb"]) * 1024 * 1024)
+            except (TypeError, ValueError):
+                pass
+
         for key in self.TRANSFER_SIZE_KEYS:
             value = metadata.get(key)
 
@@ -150,6 +165,7 @@ class FeatureExtractor:
                 return 0
 
         return 0
+
 
     def _is_sensitive_resource(
         self,

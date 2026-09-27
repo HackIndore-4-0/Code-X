@@ -10,6 +10,7 @@ from app.services.incident_service import (
 )
 from app.services.graph_service import get_incident_graph
 from app.services.audit_service import get_incident_audit_logs
+from app.services.mitigation_service import get_incident_mitigation
 
 
 router = APIRouter(
@@ -221,3 +222,31 @@ def retrieve_incident_graph(
         "data": graph,
         "error": None,
     }
+
+
+@router.get("/{incident_id}/mitigation")
+def retrieve_incident_mitigation(
+    incident_id: str,
+    db: Session = Depends(get_db),
+):
+    incident = get_incident(
+        db,
+        incident_id,
+    )
+
+    if incident is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Incident not found",
+        )
+
+    mitigation_data = get_incident_mitigation(
+        db,
+        incident_id,
+    )
+
+    return {
+        "success": True,
+        "data": mitigation_data,
+        "error": None,
+    }

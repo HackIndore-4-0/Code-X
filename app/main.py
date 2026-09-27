@@ -16,6 +16,7 @@ from app.models.correlation import Correlation
 from app.models.correlation_event import CorrelationEvent
 from app.models.audit_log import AuditLog
 from app.models.analyst_action import AnalystAction
+from app.models.mitigation_action import MitigationAction
 
 
 Base.metadata.create_all(bind=engine)

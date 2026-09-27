@@ -21,6 +21,7 @@ from app.services.incident_service import (
     create_incident,
     get_incident,
 )
+from app.services.mitigation_service import process_mitigation_for_incident
 
 
 def generate_incident_id() -> str:
@@ -346,6 +347,15 @@ def process_incoming_event(
         historical_context=historical_context,
     )
 
+    mitigation_action = None
+    if incident_id:
+        mitigation_action = process_mitigation_for_incident(
+            db=db,
+            incident_id=incident_id,
+            intelligence_result=intelligence_result,
+            simulation_run_id=simulation_run_id,
+        )
+
     audit_action = "EVENT_PROCESSED"
 
     if incident_id:
@@ -387,6 +397,8 @@ def process_incoming_event(
                 intelligence_result.get("correlations") or []
             ),
             "simulation_run_id": simulation_run_id,
+            "mitigation_triggered": mitigation_action is not None,
+            "mitigation_id": mitigation_action.id if mitigation_action else None,
         },
     )
 
@@ -397,4 +409,5 @@ def process_incoming_event(
         },
         "intelligence": intelligence_result,
         "incident_id": incident_id,
-    }
+        "mitigation_id": mitigation_action.id if mitigation_action else None,
+    }
