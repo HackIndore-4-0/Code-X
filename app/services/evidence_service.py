@@ -14,6 +14,14 @@ def create_evidence(
     impact: str | None = None,
 ) -> Evidence:
 
+    # Simulation replay / repeated processing can produce
+    # the same deterministic evidence ID.
+    # Return the existing record instead of inserting a duplicate.
+    existing = db.get(Evidence, evidence_id)
+
+    if existing is not None:
+        return existing
+
     evidence = Evidence(
         evidence_id=evidence_id,
         incident_id=incident_id,

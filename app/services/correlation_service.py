@@ -11,6 +11,11 @@ def create_correlation(
     reason: str,
     strength: float,
 ) -> Correlation:
+    existing = db.get(Correlation, correlation_id)
+
+    if existing is not None:
+        return existing
+
     correlation = Correlation(
         correlation_id=correlation_id,
         reason=reason,
@@ -30,6 +35,19 @@ def link_event_to_correlation(
     event_id: str,
     relationship: str,
 ) -> CorrelationEvent:
+    statement = (
+        select(CorrelationEvent)
+        .where(
+            CorrelationEvent.correlation_id == correlation_id,
+            CorrelationEvent.event_id == event_id,
+        )
+    )
+
+    existing = db.scalars(statement).first()
+
+    if existing is not None:
+        return existing
+
     correlation_event = CorrelationEvent(
         correlation_id=correlation_id,
         event_id=event_id,
@@ -68,16 +86,6 @@ def get_incident_correlations(
     db: Session,
     incident_id: str,
 ):
-    statement = (
-        select(Correlation)
-        .join(
-            CorrelationEvent,
-            CorrelationEvent.correlation_id
-            == Correlation.correlation_id,
-        )
-    )
-
-    # Incident → events → correlations
     from app.models.incident_event import IncidentEvent
 
     statement = (

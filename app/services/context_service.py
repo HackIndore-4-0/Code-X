@@ -28,19 +28,6 @@ def find_existing_incident(
     db: Session,
     event: NormalizedEvent,
 ) -> Incident | None:
-    """
-    Find the most recent incident related to the current event.
-
-    The relationship is established through previously stored events
-    linked to incidents. Matching considers user, device, session,
-    IP address, or resource when available.
-
-    The current event itself is excluded because it has only just
-    entered the event store.
-    """
-
-    previous_event = None
-
     conditions = []
 
     if event.user_id:
@@ -86,7 +73,65 @@ def find_existing_incident(
 def get_historical_context(
     db: Session,
     event: NormalizedEvent,
+    simulation: bool = False,
+    simulation_event_ids: list[str] | None = None,
+    simulation_incident_id: str | None = None,
 ) -> dict:
+    """
+    Build historical context for intelligence processing.
+
+    Normal processing uses stored historical context.
+
+    Simulation processing is isolated from unrelated database history.
+    It may only use events explicitly belonging to the current
+    simulation run.
+    """
+
+    if simulation:
+        simulation_event_ids = simulation_event_ids or []
+
+        if simulation_event_ids:
+            statement = (
+                select(Event)
+                .where(
+                    Event.event_id.in_(simulation_event_ids)
+                )
+                .order_by(Event.timestamp.asc())
+            )
+
+            simulation_events = list(
+                db.scalars(statement).all()
+            )
+        else:
+            simulation_events = []
+
+        historical_events = [
+            event_to_dict(item)
+            for item in simulation_events
+            if item.event_id != event.event_id
+        ]
+
+        existing_incident = None
+
+        if simulation_incident_id:
+            incident = db.get(
+                Incident,
+                simulation_incident_id,
+            )
+
+            if incident is not None:
+                existing_incident = {
+                    "incident_id": incident.incident_id,
+                    "status": incident.status,
+                }
+
+        return {
+            "user_events": historical_events,
+            "device_events": historical_events,
+            "related_events": historical_events,
+            "existing_incident": existing_incident,
+        }
+
     user_events = []
     device_events = []
     related_events = []

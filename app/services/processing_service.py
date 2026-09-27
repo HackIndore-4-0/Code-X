@@ -279,6 +279,8 @@ def process_incoming_event(
     *,
     allow_existing: bool = False,
     simulation_run_id: str | None = None,
+    simulation_event_ids: list[str] | None = None,
+    simulation_incident_id: str | None = None,
 ) -> dict:
 
     existing_event = None
@@ -308,6 +310,9 @@ def process_incoming_event(
     historical_context = get_historical_context(
         db,
         event,
+        simulation=simulation_run_id is not None,
+        simulation_event_ids=simulation_event_ids,
+        simulation_incident_id=simulation_incident_id,
     )
 
     try:
@@ -348,6 +353,7 @@ def process_incoming_event(
     )
 
     mitigation_action = None
+
     if incident_id:
         mitigation_action = process_mitigation_for_incident(
             db=db,
@@ -398,7 +404,11 @@ def process_incoming_event(
             ),
             "simulation_run_id": simulation_run_id,
             "mitigation_triggered": mitigation_action is not None,
-            "mitigation_id": mitigation_action.id if mitigation_action else None,
+            "mitigation_id": (
+                mitigation_action.id
+                if mitigation_action
+                else None
+            ),
         },
     )
 
@@ -409,5 +419,9 @@ def process_incoming_event(
         },
         "intelligence": intelligence_result,
         "incident_id": incident_id,
-        "mitigation_id": mitigation_action.id if mitigation_action else None,
-    }
+        "mitigation_id": (
+            mitigation_action.id
+            if mitigation_action
+            else None
+        ),
+    }

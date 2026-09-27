@@ -109,11 +109,30 @@ def process_next_event(db: Session) -> dict[str, Any]:
             event,
             allow_existing=True,
             simulation_run_id=_simulation_state["run_id"],
+            simulation_event_ids=_simulation_state[
+                "processed_events"
+            ],
+            simulation_incident_id=(
+                _simulation_state["incident"]["incident_id"]
+                if _simulation_state["incident"]
+                else None
+            ),
         )
 
         _simulation_state["processed_results"][
             event.event_id
         ] = result
+
+        if result.get("incident_id"):
+            _simulation_state["incident"] = {
+                "incident_id": result["incident_id"],
+            }
+
+            intelligence = result.get("intelligence") or {}
+
+            _simulation_state["priority"] = (
+                intelligence.get("priority")
+            )
 
         if event.event_id not in _simulation_state[
             "processed_events"
