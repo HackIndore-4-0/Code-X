@@ -55,6 +55,7 @@ class FeatureExtractor:
         "transfer_size_bytes",
         "transfer_size",
         "bytes_transferred",
+        "bytes",
     )
 
     def extract(

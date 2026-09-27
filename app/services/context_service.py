@@ -102,6 +102,20 @@ def get_historical_context(
             simulation_events = list(
                 db.scalars(statement).all()
             )
+        elif event.user_id or event.device_id:
+            conditions = []
+            if event.user_id:
+                conditions.append(Event.user_id == event.user_id)
+            if event.device_id:
+                conditions.append(Event.device_id == event.device_id)
+            statement = (
+                select(Event)
+                .where(*conditions)
+                .order_by(Event.timestamp.asc())
+            )
+            simulation_events = list(
+                db.scalars(statement).all()
+            )
         else:
             simulation_events = []
 
@@ -124,6 +138,14 @@ def get_historical_context(
                     "incident_id": incident.incident_id,
                     "status": incident.status,
                 }
+        else:
+            found_inc = find_existing_incident(db, event)
+            if found_inc:
+                existing_incident = {
+                    "incident_id": found_inc.incident_id,
+                    "status": found_inc.status,
+                }
+
 
         return {
             "user_events": historical_events,

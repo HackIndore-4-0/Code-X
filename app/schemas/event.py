@@ -21,6 +21,10 @@ class EventType(str, Enum):
     ADMIN_ACTION = "admin_action"
     SESSION_START = "session_start"
     SESSION_END = "session_end"
+    KNOWN_DEVICE = "known_device"
+    CORPORATE_VPN = "corporate_vpn"
+    APPROVED_MAINTENANCE = "approved_maintenance"
+    APPROVED_TRANSFER = "approved_transfer"
 
 
 class NormalizedEvent(BaseModel):

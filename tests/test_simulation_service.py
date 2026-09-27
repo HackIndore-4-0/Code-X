@@ -55,7 +55,7 @@ def test_start_benign_simulation():
     state = start_simulation("benign")
 
     assert state["scenario"] == "benign"
-    assert len(state["events"]) == 4
+    assert len(state["events"]) == 6
     assert state["state"] == "READY"
 
 
@@ -113,7 +113,7 @@ def test_previous_event_generates_changes():
 
         assert simulation["current_index"] == 0
         assert simulation["current_event"] is not None
-        assert simulation["current_event"].event_id == "SIM-SUS-001"
+        assert simulation["current_event"].event_id == "EVT-S-001"
         assert simulation["state"] == "PROCESSING"
 
         assert "event_processed" in changes

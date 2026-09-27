@@ -131,7 +131,7 @@ def test_simulation_exposes_what_changed(test_database):
     simulation = data["data"]["simulation"]
     changes = simulation["changes"]
 
-    assert simulation["current_event"]["event_id"] == "SIM-SUS-001"
+    assert simulation["current_event"]["event_id"] == "EVT-S-001"
 
     assert changes["event_processed"] is True
     assert "incident_changed" in changes

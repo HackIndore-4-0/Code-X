@@ -6,10 +6,8 @@ from app.schemas.event import NormalizedEvent
 def suspicious_scenario() -> list[NormalizedEvent]:
     return [
         NormalizedEvent(
-            event_id="SIM-SUS-001",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T09:12:00"
-            ),
+            event_id="EVT-S-001",
+            timestamp=datetime.fromisoformat("2026-09-25T09:12:00"),
             event_type="login",
             user_id="USR-101",
             device_id="DEV-882",
@@ -18,14 +16,13 @@ def suspicious_scenario() -> list[NormalizedEvent]:
             session_id="SES-001",
             action="login",
             metadata={
+                "user_name": "Aarav Sharma",
                 "unusual": True,
             },
         ),
         NormalizedEvent(
-            event_id="SIM-SUS-002",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T09:18:00"
-            ),
+            event_id="EVT-S-002",
+            timestamp=datetime.fromisoformat("2026-09-25T09:18:00"),
             event_type="mfa_failure",
             user_id="USR-101",
             device_id="DEV-882",
@@ -38,10 +35,8 @@ def suspicious_scenario() -> list[NormalizedEvent]:
             },
         ),
         NormalizedEvent(
-            event_id="SIM-SUS-003",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T09:21:00"
-            ),
+            event_id="EVT-S-003",
+            timestamp=datetime.fromisoformat("2026-09-25T09:21:00"),
             event_type="new_device",
             user_id="USR-101",
             device_id="DEV-882",
@@ -52,10 +47,8 @@ def suspicious_scenario() -> list[NormalizedEvent]:
             metadata={},
         ),
         NormalizedEvent(
-            event_id="SIM-SUS-004",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T09:25:00"
-            ),
+            event_id="EVT-S-004",
+            timestamp=datetime.fromisoformat("2026-09-25T09:25:00"),
             event_type="resource_access",
             user_id="USR-101",
             device_id="DEV-882",
@@ -67,10 +60,8 @@ def suspicious_scenario() -> list[NormalizedEvent]:
             metadata={},
         ),
         NormalizedEvent(
-            event_id="SIM-SUS-005",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T09:31:00"
-            ),
+            event_id="EVT-S-005",
+            timestamp=datetime.fromisoformat("2026-09-25T09:31:00"),
             event_type="privilege_change",
             user_id="USR-101",
             device_id="DEV-882",
@@ -83,10 +74,8 @@ def suspicious_scenario() -> list[NormalizedEvent]:
             },
         ),
         NormalizedEvent(
-            event_id="SIM-SUS-006",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T09:35:00"
-            ),
+            event_id="EVT-S-006",
+            timestamp=datetime.fromisoformat("2026-09-25T09:35:00"),
             event_type="large_transfer",
             user_id="USR-101",
             device_id="DEV-882",
@@ -96,6 +85,7 @@ def suspicious_scenario() -> list[NormalizedEvent]:
             resource="finance_db",
             action="transfer",
             metadata={
+                "bytes": 681574400,
                 "size_mb": 650,
             },
         ),
@@ -105,10 +95,8 @@ def suspicious_scenario() -> list[NormalizedEvent]:
 def benign_scenario() -> list[NormalizedEvent]:
     return [
         NormalizedEvent(
-            event_id="SIM-BEN-001",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T18:10:00"
-            ),
+            event_id="EVT-B-001",
+            timestamp=datetime.fromisoformat("2026-09-25T18:10:00"),
             event_type="login",
             user_id="USR-202",
             device_id="DEV-202",
@@ -117,15 +105,26 @@ def benign_scenario() -> list[NormalizedEvent]:
             session_id="SES-002",
             action="login",
             metadata={
+                "user_name": "Neha Verma",
                 "late_login": True,
             },
         ),
         NormalizedEvent(
-            event_id="SIM-BEN-002",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T18:12:00"
-            ),
-            event_type="new_location",
+            event_id="EVT-B-002",
+            timestamp=datetime.fromisoformat("2026-09-25T18:11:00"),
+            event_type="known_device",
+            user_id="USR-202",
+            device_id="DEV-202",
+            ip_address="10.0.0.20",
+            location="Indore",
+            session_id="SES-002",
+            action="device_verified",
+            metadata={},
+        ),
+        NormalizedEvent(
+            event_id="EVT-B-003",
+            timestamp=datetime.fromisoformat("2026-09-25T18:12:00"),
+            event_type="corporate_vpn",
             user_id="USR-202",
             device_id="DEV-202",
             ip_address="10.0.0.20",
@@ -137,11 +136,22 @@ def benign_scenario() -> list[NormalizedEvent]:
             },
         ),
         NormalizedEvent(
-            event_id="SIM-BEN-003",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T18:15:00"
-            ),
-            event_type="admin_action",
+            event_id="EVT-B-004",
+            timestamp=datetime.fromisoformat("2026-09-25T18:14:00"),
+            event_type="resource_access",
+            user_id="USR-202",
+            device_id="DEV-202",
+            ip_address="10.0.0.20",
+            location="Indore",
+            session_id="SES-002",
+            resource="maintenance_system",
+            action="read",
+            metadata={},
+        ),
+        NormalizedEvent(
+            event_id="EVT-B-005",
+            timestamp=datetime.fromisoformat("2026-09-25T18:15:00"),
+            event_type="approved_maintenance",
             user_id="USR-202",
             device_id="DEV-202",
             ip_address="10.0.0.20",
@@ -154,11 +164,9 @@ def benign_scenario() -> list[NormalizedEvent]:
             },
         ),
         NormalizedEvent(
-            event_id="SIM-BEN-004",
-            timestamp=datetime.fromisoformat(
-                "2026-09-25T18:30:00"
-            ),
-            event_type="large_transfer",
+            event_id="EVT-B-006",
+            timestamp=datetime.fromisoformat("2026-09-25T18:30:00"),
+            event_type="approved_transfer",
             user_id="USR-202",
             device_id="DEV-202",
             ip_address="10.0.0.20",
@@ -167,6 +175,7 @@ def benign_scenario() -> list[NormalizedEvent]:
             resource="maintenance_system",
             action="transfer",
             metadata={
+                "bytes": 524288000,
                 "size_mb": 500,
                 "approved": True,
             },

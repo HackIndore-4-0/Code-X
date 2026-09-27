@@ -35,12 +35,12 @@ def test_suspicious_simulation_end_to_end():
     assert state["current_index"] == -1
 
     expected_events = [
-        "SIM-SUS-001",
-        "SIM-SUS-002",
-        "SIM-SUS-003",
-        "SIM-SUS-004",
-        "SIM-SUS-005",
-        "SIM-SUS-006",
+        "EVT-S-001",
+        "EVT-S-002",
+        "EVT-S-003",
+        "EVT-S-004",
+        "EVT-S-005",
+        "EVT-S-006",
     ]
 
     for index, event_id in enumerate(expected_events):
@@ -72,7 +72,7 @@ def test_suspicious_simulation_end_to_end():
 
     assert (
         final_state["current_event"].event_id
-        == "SIM-SUS-006"
+        == "EVT-S-006"
     )
 
     assert final_state["processed_events"] == expected_events

@@ -363,7 +363,7 @@ def get_incident_mitigation(db: Session, incident_id: str) -> dict | None:
         "user_id": entities["user_id"],
         "flagged_ip": entities["flagged_ip"],
         "webhook_status": None,
-        "remediation_status": None,
+        "remediation_status": "NOT_TRIGGERED",
         "isolation_status": "NOT_TRIGGERED",
         "timestamp": None,
     }

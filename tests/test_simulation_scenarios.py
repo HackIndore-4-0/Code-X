@@ -36,6 +36,6 @@ def test_benign_scenario():
 
     events = get_scenario("benign")
 
-    assert len(events) == 4
+    assert len(events) == 6
     assert events[0].event_type == "login"
-    assert events[-1].event_type == "large_transfer"
+    assert events[-1].event_type == "approved_transfer"
