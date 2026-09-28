@@ -42,9 +42,6 @@ def find_existing_incident(
     if event.ip_address:
         conditions.append(Event.ip_address == event.ip_address)
 
-    if event.resource:
-        conditions.append(Event.resource == event.resource)
-
     if not conditions:
         return None
 
@@ -60,6 +57,7 @@ def find_existing_incident(
         )
         .where(
             Event.event_id != event.event_id,
+            Incident.status.notin_(["FALSE_POSITIVE", "RESOLVED", "CLOSED"]),
             *conditions,
         )
         .order_by(

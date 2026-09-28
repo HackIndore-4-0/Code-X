@@ -101,9 +101,13 @@ def build_graph_summary(db: Session, incident_id: str) -> dict:
             nodes.append({"id": node_id, "type": node_type})
             seen_node_ids.add(node_id)
 
+    edges = graph_data.get("edges", [])
+
     return {
         "nodes": nodes,
         "node_count": len(nodes),
+        "edges": edges,
+        "edge_count": len(edges),
     }
 
 

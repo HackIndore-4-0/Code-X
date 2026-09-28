@@ -249,4 +249,58 @@ def retrieve_incident_mitigation(
         "success": True,
         "data": mitigation_data,
         "error": None,
-    }
+    }
+
+
+@router.post("/{incident_id}/feedback")
+def apply_incident_feedback(
+    incident_id: str,
+    payload: dict,
+    db: Session = Depends(get_db),
+):
+    feedback_type = payload.get("feedback")
+    reason = payload.get("reason")
+
+    if not feedback_type:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "success": False,
+                "data": None,
+                "error": {
+                    "code": "VALIDATION_ERROR",
+                    "message": "Feedback type is required",
+                },
+            },
+        )
+
+    try:
+        from app.services.feedback_service import process_analyst_feedback
+
+        result = process_analyst_feedback(
+            db=db,
+            incident_id=incident_id,
+            feedback_type=feedback_type,
+            reason=reason,
+        )
+
+        return {
+            "success": True,
+            "data": result,
+            "error": None,
+        }
+    except ValueError as exc:
+        msg = str(exc)
+        code = "NOT_FOUND" if "not found" in msg.lower() else "INVALID_FEEDBACK"
+        status_code = 404 if code == "NOT_FOUND" else 400
+        raise HTTPException(
+            status_code=status_code,
+            detail={
+                "success": False,
+                "data": None,
+                "error": {
+                    "code": code,
+                    "message": msg,
+                },
+            },
+        )

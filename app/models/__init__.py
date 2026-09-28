@@ -8,6 +8,9 @@ from app.models.audit_log import AuditLog
 from app.models.analyst_action import AnalystAction
 from app.models.mitigation_action import MitigationAction
 
+from app.models.analyst_feedback import AnalystFeedback
+from app.models.feedback_adaptation import FeedbackAdaptation
+
 __all__ = [
     "Event",
     "Incident",
@@ -18,4 +21,6 @@ __all__ = [
     "AuditLog",
     "AnalystAction",
     "MitigationAction",
+    "AnalystFeedback",
+    "FeedbackAdaptation",
 ]

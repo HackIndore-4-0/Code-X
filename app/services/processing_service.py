@@ -22,6 +22,7 @@ from app.services.incident_service import (
     get_incident,
 )
 from app.services.mitigation_service import process_mitigation_for_incident
+from app.services.feedback_service import apply_feedback_suppression
 
 
 def generate_incident_id() -> str:
@@ -332,6 +333,13 @@ def process_incoming_event(
         intelligence_result = process_event(
             event,
             historical_context,
+        )
+
+        intelligence_result = apply_feedback_suppression(
+            db=db,
+            event=event,
+            historical_context=historical_context,
+            intelligence_result=intelligence_result,
         )
 
     except Exception as exc:
