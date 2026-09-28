@@ -25,8 +25,9 @@ export const IncidentList: React.FC<IncidentListProps> = ({ incidents, loading =
   };
 
   const getPriorityPill = (score: number) => {
-    const isCritical = score >= 70;
-    const isWarning = score >= 40;
+    const safeScore = typeof score === 'number' && !isNaN(score) ? score : 0;
+    const isCritical = safeScore >= 70;
+    const isWarning = safeScore >= 40;
 
     return (
       <div className="flex items-center gap-2">
@@ -39,14 +40,14 @@ export const IncidentList: React.FC<IncidentListProps> = ({ incidents, loading =
               : 'bg-primary-container/20 text-primary border-primary/40'
           }`}
         >
-          <NumberTicker value={score} />
+          <NumberTicker value={safeScore} />
         </span>
         <div className="w-12 h-1 rounded-sm bg-surface-container-highest overflow-hidden hidden sm:block">
           <div
             className={`h-full rounded-sm ${
               isCritical ? 'bg-error' : isWarning ? 'bg-secondary' : 'bg-primary'
             }`}
-            style={{ width: `${Math.min(100, score)}%` }}
+            style={{ width: `${Math.min(100, safeScore)}%` }}
           />
         </div>
       </div>

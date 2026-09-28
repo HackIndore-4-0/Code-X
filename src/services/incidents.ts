@@ -33,6 +33,36 @@ export interface ExplainResponse {
   recommended_actions: string[];
 }
 
+export function normalizeIncident(raw: unknown): Incident {
+  if (!raw || typeof raw !== 'object') {
+    return {
+      incident_id: '',
+      title: 'Security Incident',
+      status: 'INVESTIGATING',
+      priority: 0,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+      event_ids: [],
+    };
+  }
+
+  const item = raw as Record<string, unknown>;
+  const rawPriority = item.priority ?? item.priority_score ?? 0;
+  const numPriority = Number(rawPriority);
+
+  return {
+    incident_id: String(item.incident_id || ''),
+    title: String(item.title || 'Security Incident'),
+    status: (item.status as Incident['status']) || 'INVESTIGATING',
+    priority: isNaN(numPriority) ? 0 : Math.round(numPriority),
+    created_at: String(item.created_at || new Date().toISOString()),
+    updated_at: String(item.updated_at || item.created_at || new Date().toISOString()),
+    event_ids: Array.isArray(item.event_ids) ? (item.event_ids as string[]) : [],
+    user_id: item.user_id ? String(item.user_id) : undefined,
+    primary_user: item.primary_user ? String(item.primary_user) : item.user_id ? String(item.user_id) : undefined,
+  };
+}
+
 export const getIncidents = async (): Promise<ApiResponse<Incident[]>> => {
   if (USE_MOCK) {
     await delay();
@@ -41,7 +71,9 @@ export const getIncidents = async (): Promise<ApiResponse<Incident[]>> => {
   try {
     const res = await fetch(`${BASE_URL}/incidents`);
     if (!res.ok) return createErrorResponse('HTTP_ERROR', `Request failed with status ${res.status}`);
-    return await res.json();
+    const json = await res.json();
+    const list = Array.isArray(json.data) ? json.data.map(normalizeIncident) : [];
+    return { success: true, data: list, error: null };
   } catch (err: unknown) {
     return createErrorResponse('NETWORK_ERROR', err instanceof Error ? err.message : 'Network error');
   }
@@ -55,7 +87,8 @@ export const getIncident = async (incidentId: string): Promise<ApiResponse<Incid
   try {
     const res = await fetch(`${BASE_URL}/incidents/${incidentId}`);
     if (!res.ok) return createErrorResponse('HTTP_ERROR', `Request failed with status ${res.status}`);
-    return await res.json();
+    const json = await res.json();
+    return { success: true, data: json.data ? normalizeIncident(json.data) : null, error: null };
   } catch (err: unknown) {
     return createErrorResponse('NETWORK_ERROR', err instanceof Error ? err.message : 'Network error');
   }

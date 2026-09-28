@@ -46,7 +46,8 @@ export const WhatChanged: React.FC<WhatChangedProps> = ({ previousState, current
   const incidentObj = currentState.incident as Incident | undefined;
   const incidentId  = incidentObj?.incident_id;
 
-  const currentEvent  = currentState.current_event as NormalizedEvent | undefined;
+  const rawEvt        = currentState.current_event as NormalizedEvent | undefined;
+  const currentEvent  = rawEvt && rawEvt.event_id ? rawEvt : undefined;
   const processedEvs  = currentState.processed_events ?? [];
 
   // Build the three edge descriptors from processed events
@@ -109,8 +110,8 @@ export const WhatChanged: React.FC<WhatChangedProps> = ({ previousState, current
     mfa_failure:      'Credential Spray / Account Takeover',
     login:            'Anomalous Geographic Access',
   };
-  const factText       = currentEvent ? (factMap[currentEvent.event_type]       ?? `Audit Log #${currentEvent.event_id} recorded`) : '';
-  const hypothesisText = currentEvent ? (hypothesisMap[currentEvent.event_type] ?? 'Threat actor persistence') : '';
+  const factText       = currentEvent && currentEvent.event_type ? (factMap[currentEvent.event_type] ?? `Audit Log #${currentEvent.event_id || ''} recorded`) : '';
+  const hypothesisText = currentEvent && currentEvent.event_type ? (hypothesisMap[currentEvent.event_type] ?? 'Threat actor persistence') : '';
 
   const hasDelta = scoreDelta !== 0;
 

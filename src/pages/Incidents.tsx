@@ -49,9 +49,10 @@ function formatRelativeTime(dateString: string): string {
 }
 
 function extractEntity(incident: Incident): string {
-  const match = incident.title.match(/USR-\d+/i);
+  const title = incident.title || '';
+  const match = title.match(/USR-\d+/i);
   if (match) return match[0].toUpperCase();
-  return 'USR-101';
+  return incident.primary_user || incident.user_id || 'USR-101';
 }
 
 export const Incidents: React.FC = () => {
@@ -114,7 +115,7 @@ export const Incidents: React.FC = () => {
   const tabCounts = useMemo(() => {
     return {
       All: incidents.length,
-      High: incidents.filter((i) => i.status === 'HIGH_PRIORITY' || i.priority >= 70).length,
+      High: incidents.filter((i) => i.status === 'HIGH_PRIORITY' || (i.priority ?? 0) >= 70).length,
       Investigating: incidents.filter(
         (i) => i.status === 'INCIDENT_CANDIDATE' || i.status === 'CONFIRMED'
       ).length,
@@ -125,7 +126,8 @@ export const Incidents: React.FC = () => {
   const filteredIncidents = useMemo(() => {
     return incidents
       .filter((inc) => {
-        if (activeTab === 'High' && !(inc.status === 'HIGH_PRIORITY' || inc.priority >= 70)) {
+        const priorityVal = inc.priority ?? 0;
+        if (activeTab === 'High' && !(inc.status === 'HIGH_PRIORITY' || priorityVal >= 70)) {
           return false;
         }
         if (
@@ -143,9 +145,9 @@ export const Incidents: React.FC = () => {
 
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase().trim();
-          const matchesId = inc.incident_id.toLowerCase().includes(q);
-          const matchesTitle = inc.title.toLowerCase().includes(q);
-          const matchesStatus = inc.status.toLowerCase().includes(q);
+          const matchesId = (inc.incident_id || '').toLowerCase().includes(q);
+          const matchesTitle = (inc.title || '').toLowerCase().includes(q);
+          const matchesStatus = (inc.status || '').toLowerCase().includes(q);
           if (!matchesId && !matchesTitle && !matchesStatus) {
             return false;
           }
@@ -156,9 +158,9 @@ export const Incidents: React.FC = () => {
       .sort((a, b) => {
         let comp = 0;
         if (sortField === 'priority') {
-          comp = a.priority - b.priority;
+          comp = (a.priority ?? 0) - (b.priority ?? 0);
         } else if (sortField === 'updated_at') {
-          comp = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime();
+          comp = new Date(a.updated_at || 0).getTime() - new Date(b.updated_at || 0).getTime();
         }
         return sortDirection === 'asc' ? comp : -comp;
       });
@@ -174,8 +176,9 @@ export const Incidents: React.FC = () => {
   };
 
   const getPriorityPill = (score: number) => {
-    const isCritical = score >= 70;
-    const isWarning = score >= 40;
+    const safeScore = typeof score === 'number' && !isNaN(score) ? score : 0;
+    const isCritical = safeScore >= 70;
+    const isWarning = safeScore >= 40;
 
     return (
       <div className="flex items-center gap-2">
@@ -188,14 +191,14 @@ export const Incidents: React.FC = () => {
               : 'bg-primary-container/20 text-primary border-primary/40'
           }`}
         >
-          <NumberTicker value={score} />
+          <NumberTicker value={safeScore} />
         </span>
         <div className="w-12 h-1 rounded-sm bg-surface-container-highest overflow-hidden hidden sm:block">
           <div
             className={`h-full rounded-sm ${
               isCritical ? 'bg-error' : isWarning ? 'bg-secondary' : 'bg-primary'
             }`}
-            style={{ width: `${Math.min(100, score)}%` }}
+            style={{ width: `${Math.min(100, safeScore)}%` }}
           />
         </div>
       </div>
@@ -399,7 +402,7 @@ export const Incidents: React.FC = () => {
                       <td className="py-2.5 px-3.5 text-center">
                         <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-sm font-code-sm bg-surface-container-low border border-outline-variant text-on-surface">
                           <Layers className="w-3 h-3 text-on-surface-variant" />
-                          <NumberTicker value={inc.event_ids.length} />
+                          <NumberTicker value={inc.event_ids?.length ?? 0} />
                         </span>
                       </td>
                       <td className="py-2.5 px-3.5 text-right font-code-sm text-on-surface-variant">

@@ -258,7 +258,8 @@ export const Simulation: React.FC = () => {
   // ── Derived state ─────────────────────────────────────────────────────────
   const scenario       = currentState?.scenario ?? 'suspicious';
   const processedEvts  = currentState?.processed_events ?? [];
-  const currentEvent   = currentState?.current_event as NormalizedEvent | undefined;
+  const rawCurrentEvt  = currentState?.current_event as NormalizedEvent | undefined;
+  const currentEvent   = rawCurrentEvt && rawCurrentEvt.event_id ? rawCurrentEvt : undefined;
   const priorityObj    = currentState?.priority as Priority | undefined;
   const prevPriority   = previousState?.priority as Priority | undefined;
   const currentScore   = priorityObj?.score ?? 0;

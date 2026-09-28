@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Terminal as TerminalIcon, Copy, Check } from 'lucide-react';
 import type { NormalizedEvent } from '../../types/event';
@@ -181,6 +181,11 @@ export const TypingAnimation: React.FC<TypingAnimationProps> = ({
 }) => {
   const [displayedText, setDisplayedText] = useState('');
   const [isTyping, setIsTyping] = useState(true);
+  const onCompleteRef = useRef(onComplete);
+
+  useEffect(() => {
+    onCompleteRef.current = onComplete;
+  }, [onComplete]);
 
   useEffect(() => {
     setDisplayedText('');
@@ -194,12 +199,12 @@ export const TypingAnimation: React.FC<TypingAnimationProps> = ({
       } else {
         setIsTyping(false);
         clearInterval(timer);
-        if (onComplete) onComplete();
+        onCompleteRef.current?.();
       }
     }, duration);
 
     return () => clearInterval(timer);
-  }, [text, duration, onComplete]);
+  }, [text, duration]);
 
   return (
     <span className={className}>
@@ -245,9 +250,10 @@ export const Terminal: React.FC<TerminalProps> = ({
   const [headerTypingDone, setHeaderTypingDone] = useState(false);
 
   const lines = generateTerminalLines(currentState, currentStep, scenario);
-  const currentEvt = currentState?.current_event as NormalizedEvent | undefined;
+  const rawEvt = currentState?.current_event as NormalizedEvent | undefined;
+  const currentEvt = rawEvt && rawEvt.event_id ? rawEvt : undefined;
 
-  const headerCommand = currentEvt
+  const headerCommand = currentEvt?.event_id
     ? `trcx-engine --stream=event --id=${currentEvt.event_id} --scenario=${scenario}`
     : `trcx-engine --init --mode=simulation --scenario=${scenario}`;
 
