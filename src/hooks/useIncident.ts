@@ -8,6 +8,8 @@ import {
   fetchIncidentAudit,
   postAnalystAction,
   postExplainIncident,
+  fetchIncidentMitigation,
+  postIncidentFeedback,
 } from '../api/incidents';
 import type { AnalystAction } from '../types/incident';
 
@@ -101,6 +103,20 @@ export function useIncidentExplanation(incidentId: string | undefined) {
   });
 }
 
+export function useIncidentMitigation(incidentId: string | undefined) {
+  return useQuery({
+    queryKey: ['incidentMitigation', incidentId],
+    queryFn: async () => {
+      if (!incidentId) return null;
+      const res = await fetchIncidentMitigation(incidentId);
+      if (!res.success || !res.data) return null;
+      return res.data;
+    },
+    enabled: Boolean(incidentId),
+    refetchInterval: 4000,
+  });
+}
+
 export function usePerformAction(incidentId: string | undefined) {
   const queryClient = useQueryClient();
 
@@ -115,6 +131,26 @@ export function usePerformAction(incidentId: string | undefined) {
       queryClient.invalidateQueries({ queryKey: ['incidents'] });
       queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
       queryClient.invalidateQueries({ queryKey: ['incidentAudit', incidentId] });
+      queryClient.invalidateQueries({ queryKey: ['incidentMitigation', incidentId] });
+    },
+  });
+}
+
+export function useSubmitFeedback(incidentId: string | undefined) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ feedback, reason }: { feedback: 'FALSE_POSITIVE' | string; reason?: string }) => {
+      if (!incidentId) throw new Error('Missing incident ID');
+      const res = await postIncidentFeedback(incidentId, feedback, reason);
+      if (!res.success) throw new Error(res.error?.message || 'Failed to submit analyst feedback');
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['incidents'] });
+      queryClient.invalidateQueries({ queryKey: ['incident', incidentId] });
+      queryClient.invalidateQueries({ queryKey: ['incidentAudit', incidentId] });
+      queryClient.invalidateQueries({ queryKey: ['incidentMitigation', incidentId] });
     },
   });
 }

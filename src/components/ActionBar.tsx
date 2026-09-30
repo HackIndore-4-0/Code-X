@@ -4,6 +4,7 @@ import type { AnalystActionType, DismissalReason } from '../types/incident';
 
 interface ActionBarProps {
   onAction: (action: AnalystActionType, reason?: DismissalReason) => Promise<void> | void;
+  onFalsePositive?: () => void;
   isPending?: boolean;
   activeAction?: AnalystActionType | null;
   className?: string;
@@ -19,6 +20,7 @@ const DISMISSAL_REASONS: { id: DismissalReason; label: string }[] = [
 
 export const ActionBar: React.FC<ActionBarProps> = ({
   onAction,
+  onFalsePositive,
   isPending = false,
   activeAction = null,
   className = '',
@@ -112,6 +114,34 @@ export const ActionBar: React.FC<ActionBarProps> = ({
             )}
             Confirm
           </button>
+
+          {/* Mark as False Positive (Triggers Adaptive Suppression Engine) */}
+          {onFalsePositive && (
+            <button
+              onClick={onFalsePositive}
+              disabled={isPending}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-200 disabled:opacity-50 cursor-pointer"
+              style={{
+                background:  'rgba(245, 158, 11, 0.12)',
+                borderColor: 'rgba(245, 158, 11, 0.4)',
+                color:       '#FCD34D',
+                boxShadow:   '0 0 10px rgba(245, 158, 11, 0.15)',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background  = 'rgba(245, 158, 11, 0.25)';
+                (e.currentTarget as HTMLButtonElement).style.borderColor = '#FCD34D';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow   = '0 0 16px rgba(245, 158, 11, 0.35)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background  = 'rgba(245, 158, 11, 0.12)';
+                (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(245, 158, 11, 0.4)';
+                (e.currentTarget as HTMLButtonElement).style.boxShadow   = '0 0 10px rgba(245, 158, 11, 0.15)';
+              }}
+            >
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+              Mark as False Positive
+            </button>
+          )}
 
           {/* Escalate */}
           <button

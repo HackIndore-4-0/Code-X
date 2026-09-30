@@ -13,6 +13,9 @@ import {
   performAnalystAction,
   explainIncident,
   type ExplainResponse,
+  getIncidentMitigation,
+  submitIncidentFeedback,
+  type MitigationData,
 } from '../services/incidents';
 
 export const fetchIncidents = async (): Promise<ApiResponse<Incident[]>> => {
@@ -39,6 +42,10 @@ export const fetchIncidentAudit = async (incidentId: string): Promise<ApiRespons
   return getIncidentAudit(incidentId);
 };
 
+export const fetchIncidentMitigation = async (incidentId: string): Promise<ApiResponse<MitigationData>> => {
+  return getIncidentMitigation(incidentId);
+};
+
 export const postAnalystAction = async (
   incidentId: string,
   action: AnalystAction
@@ -49,3 +56,12 @@ export const postAnalystAction = async (
 export const postExplainIncident = async (incidentId: string): Promise<ApiResponse<ExplainResponse>> => {
   return explainIncident(incidentId);
 };
+
+export const postIncidentFeedback = async (
+  incidentId: string,
+  feedback: 'FALSE_POSITIVE' | string,
+  reason?: string
+): Promise<ApiResponse<{ feedback_id: string; status: string }>> => {
+  return submitIncidentFeedback(incidentId, feedback, reason);
+};
+

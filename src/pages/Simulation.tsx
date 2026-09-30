@@ -266,8 +266,7 @@ export const Simulation: React.FC = () => {
   const prevScore      = prevPriority?.score ?? 0;
   const scoreDelta     = currentScore - prevScore;
   const currentStep    = processedEvts.length;
-  const simThreatScore    = getSimulationThreatScore(currentStep, scenario);
-  const simThreatSeverity = getThreatSeverity(simThreatScore);
+  const simThreatScore = getSimulationThreatScore(currentStep, scenario);
   const pipeline       = scenario === 'suspicious' ? SUSPICIOUS_PIPELINE : BENIGN_PIPELINE;
   const totalSteps = Math.max(
   1,
@@ -1087,26 +1086,26 @@ export const Simulation: React.FC = () => {
                 <span className="text-[14px] font-semibold" style={{ color: C.onSurfaceMd3 }}>
                   Threat Score
                 </span>
-                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold" style={{ background: C.surfaceContainerHigh, color: C.outlineMd3, border: `1px solid ${C.outlineVariantMd3}` }}>
-                  MOCK DATA
+                <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold" style={{ background: 'rgba(59,130,246,0.15)', color: C.primaryMd3, border: `1px solid rgba(59,130,246,0.4)` }}>
+                  PIPELINE DERIVED
                 </span>
               </div>
               <span
                 className="px-2 py-0.5 rounded text-[10px] font-mono font-bold"
                 style={{
-                  background: simThreatScore >= 60 ? 'rgba(147,0,10,0.3)' : simThreatScore >= 40 ? 'rgba(245,158,11,0.2)' : simThreatScore >= 20 ? 'rgba(77,142,255,0.2)' : C.surfaceContainerHigh,
-                  color:      simThreatScore >= 60 ? C.errorMd3 : simThreatScore >= 40 ? '#f59e0b' : simThreatScore >= 20 ? C.primaryMd3 : C.onSurfaceVariantMd3,
-                  border:     `1px solid ${simThreatScore >= 60 ? 'rgba(255,180,171,0.4)' : simThreatScore >= 40 ? 'rgba(245,158,11,0.4)' : 'rgba(173,198,255,0.4)'}`,
+                  background: (currentScore || simThreatScore) >= 60 ? 'rgba(147,0,10,0.3)' : (currentScore || simThreatScore) >= 40 ? 'rgba(245,158,11,0.2)' : (currentScore || simThreatScore) >= 20 ? 'rgba(77,142,255,0.2)' : C.surfaceContainerHigh,
+                  color:      (currentScore || simThreatScore) >= 60 ? C.errorMd3 : (currentScore || simThreatScore) >= 40 ? '#f59e0b' : (currentScore || simThreatScore) >= 20 ? C.primaryMd3 : C.onSurfaceVariantMd3,
+                  border:     `1px solid ${(currentScore || simThreatScore) >= 60 ? 'rgba(255,180,171,0.4)' : (currentScore || simThreatScore) >= 40 ? 'rgba(245,158,11,0.4)' : 'rgba(173,198,255,0.4)'}`,
                 }}
               >
-                {simThreatSeverity.toUpperCase()} SEVERITY
+                {getThreatSeverity(currentScore || simThreatScore).toUpperCase()} SEVERITY
               </span>
             </div>
 
             <div className="flex items-baseline justify-between">
               <div className="flex items-baseline gap-1.5 font-mono">
                 <span className="text-3xl font-black leading-none" style={{ color: C.onSurfaceMd3, fontFamily: 'Inter, sans-serif' }}>
-                  <NumberTicker value={simThreatScore} />
+                  <NumberTicker value={currentScore || simThreatScore} />
                 </span>
                 <span className="text-xs font-medium" style={{ color: C.outlineMd3 }}>/ 100</span>
               </div>

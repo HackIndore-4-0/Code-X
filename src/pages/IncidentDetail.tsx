@@ -1,7 +1,17 @@
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Clock, User, FileText, Zap, History, Bot, AlertCircle, Flame } from 'lucide-react';
-import { useIncident, useIncidentTimeline, useIncidentGraph, useIncidentEvidence, useIncidentAudit, useIncidentExplanation, usePerformAction } from '../hooks/useIncident';
+import { ArrowLeft, Clock, User, FileText, Zap, History, Bot, AlertCircle, ShieldAlert } from 'lucide-react';
+import {
+  useIncident,
+  useIncidentTimeline,
+  useIncidentGraph,
+  useIncidentEvidence,
+  useIncidentAudit,
+  useIncidentExplanation,
+  useIncidentMitigation,
+  usePerformAction,
+  useSubmitFeedback,
+} from '../hooks/useIncident';
 import { useSimulation } from '../hooks/useSimulation';
 import StateBadge from '../components/StateBadge';
 import WhatChangedBanner from '../components/WhatChangedBanner';
@@ -12,15 +22,17 @@ import PriorityBreakdown from '../components/PriorityBreakdown';
 import AuditTrail from '../components/incidents/AuditTrail';
 import AIExplanation from '../components/AIExplanation';
 import ActionBar from '../components/ActionBar';
-import { getThreatScoreForIncident } from '../services/threatScore';
+import MitigationPanel from '../components/incidents/MitigationPanel';
+import FalsePositiveModal from '../components/incidents/FalsePositiveModal';
 import type { AnalystActionType, DismissalReason } from '../types/incident';
 import { NumberTicker } from '@/registry/magicui/number-ticker';
 
 
 export const IncidentDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
-  const [activeTab, setActiveTab] = useState<'evidence' | 'priority' | 'audit' | 'ai'>('evidence');
+  const [activeTab, setActiveTab] = useState<'evidence' | 'priority' | 'mitigation' | 'audit' | 'ai'>('evidence');
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const [showFalsePositiveModal, setShowFalsePositiveModal] = useState<boolean>(false);
 
   const { data: incident, isLoading: isIncidentLoading, error: incidentError, refetch } = useIncident(id);
   const { data: timeline = [] } = useIncidentTimeline(id);
@@ -28,7 +40,9 @@ export const IncidentDetail: React.FC = () => {
   const { data: evidenceList = [], isLoading: isEvidenceLoading } = useIncidentEvidence(id);
   const { data: auditLogs = [], isLoading: isAuditLoading } = useIncidentAudit(id);
   const { data: aiExplanation, isLoading: isAiLoading } = useIncidentExplanation(id);
+  const { data: mitigationData, isLoading: isMitigationLoading } = useIncidentMitigation(id);
   const { mutateAsync: performAction, isPending: isActionPending } = usePerformAction(id);
+  const { mutateAsync: submitFeedback, isPending: isFeedbackPending } = useSubmitFeedback(id);
   const { diffs } = useSimulation();
 
   const handleAnalystAction = async (action: AnalystActionType, reason?: DismissalReason) => {
@@ -38,6 +52,18 @@ export const IncidentDetail: React.FC = () => {
       setActionFeedback(`Analyst action '${action}' recorded successfully.`);
     } catch (err: unknown) {
       setActionFeedback(err instanceof Error ? err.message : 'Action execution failed');
+    }
+  };
+
+  const handleFalsePositiveSubmit = async (reason: string, notes?: string) => {
+    try {
+      setActionFeedback(null);
+      await submitFeedback({ feedback: 'FALSE_POSITIVE', reason: notes ? `${reason}: ${notes}` : reason });
+      setShowFalsePositiveModal(false);
+      setActionFeedback(`Incident marked as FALSE_POSITIVE. Adaptive suppression factor updated.`);
+      refetch();
+    } catch (err: unknown) {
+      setActionFeedback(err instanceof Error ? err.message : 'Failed to submit false positive feedback');
     }
   };
 
@@ -84,9 +110,9 @@ export const IncidentDetail: React.FC = () => {
   }
 
   const primaryUser = incident.primary_user || incident.user_id || 'USR-007';
-  const threatData = getThreatScoreForIncident(incident.incident_id);
-  const threatScore = Math.min(79, Math.max(0, threatData.threat_score));
-  const threatSeverity = threatData.severity;
+  const threatWeight = mitigationData?.threat_weight ?? incident.priority;
+  const threatThreshold = mitigationData?.threshold ?? 80;
+  const isMitigationTriggered = mitigationData?.triggered === true;
 
   return (
     <div className="p-4 sm:p-6 space-y-5 max-w-7xl mx-auto font-body-md text-on-surface">
@@ -169,42 +195,40 @@ export const IncidentDetail: React.FC = () => {
           </p>
         </div>
 
-        {/* Card 2: Threat Score */}
+        {/* Card 2: Deterministic Threat Weight */}
         <div className="p-4.5 rounded-xl bg-surface-container-lowest border border-outline-variant/70 shadow-lg shadow-black/40 space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Flame className="w-4 h-4 text-amber-400" />
+              <Zap className="w-4 h-4 text-primary" />
               <span className="font-label-md text-on-surface-variant font-bold tracking-wider">
-                THREAT SCORE
+                THREAT WEIGHT
               </span>
-              <span className="px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold bg-surface-container-high text-on-surface-variant/80 border border-outline-variant/60">
-                MOCK DATA
+              <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold bg-primary-container/20 text-primary border border-primary/40">
+                LIVE PIPELINE
               </span>
             </div>
             <span
               className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${
-                threatScore >= 60
+                isMitigationTriggered
                   ? 'bg-error-container/30 text-error border-error/50'
-                  : threatScore >= 40
+                  : threatWeight >= 70
                   ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
-                  : threatScore >= 20
-                  ? 'bg-primary-container/20 text-primary border-primary/40'
-                  : 'bg-surface-container-high text-on-surface-variant border-outline-variant'
+                  : 'bg-primary-container/20 text-primary border-primary/40'
               }`}
             >
-              {threatSeverity.toUpperCase()} SEVERITY
+              {isMitigationTriggered ? 'MITIGATION TRIGGERED' : threatWeight >= 70 ? 'HIGH RISK' : 'NORMAL MONITORING'}
             </span>
           </div>
 
           <div className="flex items-baseline justify-between">
             <div className="flex items-baseline gap-1.5 font-mono">
               <span className="text-3xl sm:text-4xl font-black text-on-surface leading-none">
-                <NumberTicker value={threatScore} />
+                <NumberTicker value={threatWeight} decimalPlaces={1} />
               </span>
               <span className="text-xs text-on-surface-variant font-medium">/100</span>
             </div>
             <span className="text-xs font-mono text-on-surface-variant">
-              Suspicious Behavior Severity
+              Threshold: {threatThreshold}
             </span>
           </div>
 
@@ -212,19 +236,19 @@ export const IncidentDetail: React.FC = () => {
           <div className="w-full h-2 rounded-full bg-surface-container-high overflow-hidden">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
-                threatScore >= 60
+                threatWeight >= threatThreshold
                   ? 'bg-error'
-                  : threatScore >= 40
+                  : threatWeight >= 40
                   ? 'bg-amber-400'
-                  : threatScore >= 20
-                  ? 'bg-primary'
-                  : 'bg-secondary'
+                  : 'bg-primary'
               }`}
-              style={{ width: `${Math.min(79, threatScore)}%` }}
+              style={{ width: `${Math.min(100, threatWeight)}%` }}
             />
           </div>
           <p className="text-[11px] font-mono text-on-surface-variant/90 leading-tight">
-            {threatData.explanation}
+            {isMitigationTriggered
+              ? `Automated viaSocket mitigation triggered: Entity ${mitigationData?.flagged_ip || 'ISOLATED'}.`
+              : `Threat weight evaluated below threshold (${threatWeight.toFixed(1)} < ${threatThreshold}). Continuous telemetry monitoring.`}
           </p>
         </div>
       </div>
@@ -263,8 +287,8 @@ export const IncidentDetail: React.FC = () => {
 
         {/* Right Column: Tabbed Panels (4 cols) */}
         <div className="lg:col-span-4 space-y-3 font-code-sm">
-          {/* Tab Selection Bar */}
-          <div className="grid grid-cols-4 gap-1 p-1 rounded-md bg-surface-container-lowest border border-outline-variant font-code-sm">
+          {/* Tab Selection Bar (5 tabs) */}
+          <div className="grid grid-cols-5 gap-1 p-1 rounded-md bg-surface-container-lowest border border-outline-variant font-code-sm">
             <button
               onClick={() => setActiveTab('evidence')}
               className={`py-1.5 rounded-sm transition-colors cursor-pointer flex items-center justify-center gap-1 ${
@@ -287,6 +311,18 @@ export const IncidentDetail: React.FC = () => {
             >
               <Zap className="w-3 h-3" />
               Priority
+            </button>
+
+            <button
+              onClick={() => setActiveTab('mitigation')}
+              className={`py-1.5 rounded-sm transition-colors cursor-pointer flex items-center justify-center gap-1 ${
+                activeTab === 'mitigation'
+                  ? 'bg-surface-container-high text-primary border border-primary/40'
+                  : 'text-on-surface-variant hover:text-on-surface'
+              }`}
+            >
+              <ShieldAlert className="w-3 h-3" />
+              Mitigate
             </button>
 
             <button
@@ -326,6 +362,10 @@ export const IncidentDetail: React.FC = () => {
               </div>
             )}
 
+            {activeTab === 'mitigation' && (
+              <MitigationPanel mitigation={mitigationData} isLoading={isMitigationLoading} />
+            )}
+
             {activeTab === 'audit' && (
               <AuditTrail entries={auditLogs} loading={isAuditLoading} incidentId={id} />
             )}
@@ -340,7 +380,17 @@ export const IncidentDetail: React.FC = () => {
       {/* Bottom Sticky Action Bar */}
       <ActionBar
         onAction={handleAnalystAction}
-        isPending={isActionPending}
+        onFalsePositive={() => setShowFalsePositiveModal(true)}
+        isPending={isActionPending || isFeedbackPending}
+      />
+
+      {/* False Positive Feedback Modal */}
+      <FalsePositiveModal
+        incidentId={incident.incident_id}
+        isOpen={showFalsePositiveModal}
+        onClose={() => setShowFalsePositiveModal(false)}
+        onSubmit={handleFalsePositiveSubmit}
+        isSubmitting={isFeedbackPending}
       />
     </div>
   );

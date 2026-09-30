@@ -175,6 +175,80 @@ export const performAnalystAction = async (
   }
 };
 
+export interface MitigationData {
+  incident_id: string;
+  threat_weight: number;
+  threshold: number;
+  triggered: boolean;
+  mitigation_id: string | null;
+  action: string | null;
+  entity: { type: string; value: string } | null;
+  user_id?: string;
+  flagged_ip?: string;
+  webhook_status?: string | null;
+  remediation_status: string;
+  isolation_status?: string;
+  timestamp?: string | null;
+}
+
+export const getIncidentMitigation = async (incidentId: string): Promise<ApiResponse<MitigationData>> => {
+  if (USE_MOCK) {
+    await delay();
+    return {
+      success: true,
+      data: {
+        incident_id: incidentId,
+        threat_weight: 86.0,
+        threshold: 80.0,
+        triggered: true,
+        mitigation_id: 'MIT-MOCK-001',
+        action: 'ISOLATE_ENTITY',
+        entity: { type: 'IP', value: '198.51.100.42' },
+        user_id: 'USR-101',
+        flagged_ip: '198.51.100.42',
+        webhook_status: 'SUCCESS',
+        remediation_status: 'ISOLATED',
+        isolation_status: 'ISOLATED',
+        timestamp: new Date().toISOString(),
+      },
+      error: null,
+    };
+  }
+  try {
+    const res = await fetch(`${BASE_URL}/incidents/${incidentId}/mitigation`);
+    if (!res.ok) return createErrorResponse('HTTP_ERROR', `Request failed with status ${res.status}`);
+    return await res.json();
+  } catch (err: unknown) {
+    return createErrorResponse('NETWORK_ERROR', err instanceof Error ? err.message : 'Network error');
+  }
+};
+
+export const submitIncidentFeedback = async (
+  incidentId: string,
+  feedback: 'FALSE_POSITIVE' | string,
+  reason?: string
+): Promise<ApiResponse<{ feedback_id: string; status: string }>> => {
+  if (USE_MOCK) {
+    await delay();
+    return {
+      success: true,
+      data: { feedback_id: `FBK-${Date.now()}`, status: 'RECORDED' },
+      error: null,
+    };
+  }
+  try {
+    const res = await fetch(`${BASE_URL}/incidents/${incidentId}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback, reason }),
+    });
+    if (!res.ok) return createErrorResponse('HTTP_ERROR', `Request failed with status ${res.status}`);
+    return await res.json();
+  } catch (err: unknown) {
+    return createErrorResponse('NETWORK_ERROR', err instanceof Error ? err.message : 'Network error');
+  }
+};
+
 export const explainIncident = async (incidentId: string): Promise<ApiResponse<ExplainResponse>> => {
   if (USE_MOCK) {
     await delay();
@@ -201,3 +275,5 @@ export const explainIncident = async (incidentId: string): Promise<ApiResponse<E
     return createErrorResponse('NETWORK_ERROR', err instanceof Error ? err.message : 'Network error');
   }
 };
+
+
